@@ -900,6 +900,8 @@ function foo(x: number) {
 
 ### Intersection Types
 
+An intersection type combines multiple types into one, for example, `Person & Serializable & Loggable`. That means an object of this type will have all members of all three types.
+
 ```ts
 function extend<F, S>(first: F, second: S): F & S {
   const result: Partial<F & S> = {};
@@ -928,4 +930,592 @@ function padLeft(value: string, padding: number | string) {
     return padding + value;
   }
 }
+```
+
+### Type Guards
+
+```ts
+interface Bird {
+  fly();
+  layEggs();
+}
+
+interface Fish {
+  swim();
+  layEggs();
+}
+
+// Type predicate: A predicate takes the form `parameterName is Type`.
+function isFish(pet: Fish | Bird): pet is Fish {
+  return 'swim' in pet;
+}
+
+function playSmallPet(pet: Fish | Bird) {
+  if (isFish(pet)) {
+    pet.swim();
+  } else {
+    pet.fly();
+  }
+}
+```
+
+#### Using the `in` operator
+
+```ts
+function move(pet: Fish | Bird) {
+  if ('swim' in pet) {
+    return pet.swim();
+  }
+  return pet.fly();
+}
+```
+
+#### `typeof` type guards
+
+The `typeof` type guards are recognized in two different forms:
+
+- `typeof v === <typename>`
+- `typeof v !== <typename>`
+
+where `<typename>` must be:
+
+- `'boolean'`
+- `'string'`
+- `'number'`
+- `'symbol'`
+
+> Note: There are three more possible values of `typeof v`:
+>
+> - `'undefined'`
+> - `'function'`
+> - `'object'`
+
+#### `instanceof` type guards
+
+```ts
+interface Padder {}
+
+class SpaceRepeatingPadder implements Padder {}
+
+class StringPadder implements Padder {}
+
+function applyRandomPadder(padder: SpaceRepeatingPadder | StringPadder) {
+  if (padder instanceof SpaceRepeatingPadder) {
+    padder; // type narrowed to 'SpaceRepeatingPadder'
+  }
+  if (padder instanceof StringPadder) {
+    padder; // type narrowed to 'StringPadder'
+  }
+}
+```
+
+#### Assertion Functions
+
+```ts
+function assert(condition: any, msg?: string): asserts condition {
+  if (!condition) {
+    throw new Error(msg);
+  }
+}
+
+function yell(str: any) {
+  assert(typeof str === 'string');
+
+  return str.toUppercase();
+  //         ~~~~~~~~~~~
+  // Error: Property 'toUppercase' does not exist on type 'string'.
+  //        Did you mean 'toUpperCase'?
+}
+```
+
+```ts
+function assertIsString(val: any): asserts val is string {
+  if (typeof val !== 'string') {
+    throw new Error('Not a string!');
+  }
+}
+```
+
+### Nullable types
+
+By default, `null` and `undefined` assignable to anything, but this is a [“billion dollar mistake”](https://en.wikipedia.org/wiki/Null_pointer#History). Fortunately, the `--strictNullChecks` flag fixes this:
+
+```ts
+let s = 'foo';
+s = null; // Error: 'null' is not assignable to 'string'
+```
+
+```ts
+let s: string | null = 'bar';
+s = null; // OK
+
+s = undefined; // Error: 'undefined' is not assignable to 'string | null'
+```
+
+#### Automatically Adding <code>&nbsp;| void</code>
+
+Optional Parameters and Properties automatically add <code>&nbsp;| void</code>:
+
+```ts
+function f(x: number, y?: number) {
+  // ...
+}
+
+f(1);
+f(1, 2);
+f(1, undefined);
+
+f(1, null); // Error: 'null' is not assignable to 'number | void'
+```
+
+```ts
+class C {
+  constructor(public a: number, public b?: number) {}
+}
+
+new C(1);
+new C(1, 2);
+new C(1, undefined);
+
+new C(1, null); // Error: 'null' is not assignable to 'number | void'
+```
+
+#### Optional Chaining with `?.`
+
+Use _optional chaining_ to simplify working with nullable types:
+
+```ts
+const x = foo === null || foo === undefined ? undefined : foo.bar.baz();
+
+// optional property access
+const x = foo?.bar.baz();
+```
+
+```ts
+function f(foo?: number[] | null) {
+  // optional element access
+  foo?.[0];
+}
+
+function f(foo?: (() => void) | null) {
+  // optional call
+  foo?.();
+}
+```
+
+#### Nullish Coalescing with `??`
+
+```ts
+const x = foo !== null && foo !== undefined ? foo : bar();
+
+const x = foo ?? bar();
+```
+
+> Note: Comparing with `val || alt`, `val ?? alt` avoids some unintended behavior from `0`, `NaN`, `false` and `''` being treated as falsy values.
+
+#### Eliminate Nullable with `!`
+
+```ts
+function f(arg?: number | null): number {
+  return arg!;
+}
+```
+
+### Type Aliases
+
+Type aliases create a new name for a type, doesn’t actually create a new type.
+
+```ts
+type Name = string;
+type NameResolver = () => string;
+type NameOrResolver = Name | NameResolver;
+function getName(n: NameOrResolver): Name {
+  if (typeof n === 'string') {
+    return n;
+  } else {
+    return n();
+  }
+}
+```
+
+```ts
+type Tree<T> = {
+  value: T;
+  left: Tree<T>;
+  right: Tree<T>;
+};
+```
+
+```ts
+// This is how type aliases can be extended.
+type LinkedList<T> = T & { next: LinkedList<T> };
+
+interface Person {
+  name: string;
+}
+```
+
+> Note: For [being open to extension](https://en.wikipedia.org/wiki/Open/closed_principle), use an interface over a type alias if possible.
+
+### Discriminated Unions
+
+There are three ingredients:
+
+1. Types that have a common, **singleton type** property — the _discriminant_.
+   1. String literal types.
+   2. Numeric literal types.
+   3. Enum member types.
+2. A type alias that takes the union of those types — the _union_.
+3. Type guards on the common property.
+
+```ts
+// Step 1
+interface Square {
+  kind: 'square';
+  size: number;
+}
+interface Rectangle {
+  kind: 'rectangle';
+  width: number;
+  height: number;
+}
+interface Circle {
+  kind: 'circle';
+  radius: number;
+}
+
+// Step 2
+type Shape = Square | Rectangle | Circle;
+
+// Step 3
+function area(s: Shape) {
+  switch (s.kind) {
+    case 'square':
+      return s.size * s.size;
+    case 'rectangle':
+      return s.height * s.width;
+    case 'circle':
+      return Math.PI * s.radius ** 2;
+  }
+}
+```
+
+#### Exhaustiveness checking
+
+```ts
+function area(s: Shape) {
+  switch (s.kind) {
+    case 'square':
+      return s.size * s.size;
+    case 'rectangle':
+      return s.height * s.width;
+  }
+  // should error here - case 'circle' not handled
+}
+```
+
+There are three ways to tell the compiler to cover all variants of the discriminated union.
+
+1. Turn on `--noImplicitReturns` to Ensure that all codepaths return in a function.
+2. Turn on `--strictNullChecks` and specify a return type.
+3. Use the `never` type to check for exhaustiveness.
+
+```ts
+function assertNever(x: never): never {
+  throw new Error('Unexpected object: ' + x);
+}
+
+function area(s: Shape) {
+  switch (s.kind) {
+    case 'square':
+      return s.size * s.size;
+    case 'rectangle':
+      return s.height * s.width;
+    default:
+      // error here if there are missing cases
+      return assertNever(s);
+  }
+}
+```
+
+### Polymorphic `this` types
+
+```ts
+class BasicCalculator {
+  constructor(protected value: number) {}
+  currentValue(): number {
+    return this.value;
+  }
+  // Change `this` to `BasicCalculator` to see what happens.
+  multiply(operand: number): this {
+    this.value *= operand;
+    return this;
+  }
+}
+
+class ScientificCalculator extends BasicCalculator {
+  constructor(value = 0) {
+    super(value);
+  }
+  sin() {
+    this.value = Math.sin(this.value);
+    return this;
+  }
+  // ... other operations go here ...
+}
+
+const v = new ScientificCalculator(2)
+  .multiply(5)
+  .sin()
+  .currentValue();
+```
+
+### Index types
+
+- `keyof T`, the **index type query** operator.
+- `T[keyof T]`, the **indexed access** operator.
+
+```ts
+function getProperty<T, K extends keyof T>(o: T, propertyName: K): T[K] {
+  // o[propertyName] is of type T[K]
+  return o[propertyName];
+}
+
+const taxi = {
+  manufacturer: 'Toyota',
+  model: 'Camry',
+  year: 2014
+};
+
+const name: string = getProperty(taxi, 'manufacturer');
+const year: number = getProperty(taxi, 'year');
+```
+
+#### Index types and index signatures
+
+```ts
+interface Dictionary<T> {
+  [key: string]: T;
+}
+let keys: keyof Dictionary<number>; // string | number
+let val1: Dictionary<number>[string]; // number;
+let val2: Dictionary<number>[number]; // number;
+let val3: Dictionary<number>['foo']; // number
+let val4: Dictionary<number>[123]; // number
+```
+
+```ts
+interface Dictionary<T> {
+  [key: number]: T;
+}
+let keys: keyof Dictionary<number>; // number
+let val1: Dictionary<number>[number]; // number;
+let val2: Dictionary<number>[42]; // number
+```
+
+### Mapped types
+
+The syntax resembles the syntax for index signatures with a `for .. in` inside.
+
+```ts
+type Keys = 'option1' | 'option2';
+type Flags = { [K in Keys]: boolean };
+```
+
+```ts
+type Readonly<T> = {
+  readonly [P in keyof T]: T[P];
+};
+
+type Partial<T> = {
+  [P in keyof T]?: T[P];
+};
+
+type Nullable<T> = {
+  [P in keyof T]: T[P] | null;
+};
+
+type Pick<T, K extends keyof T> = {
+  [P in K]: T[P];
+};
+
+type Record<K extends keyof any, T> = {
+  [P in K]: T;
+};
+```
+
+```ts
+// use an intersection type to add new members
+type PartialWithNewMember<T> = {
+  [P in keyof T]?: T[P];
+} & { newMember: boolean };
+```
+
+```ts
+type Proxy<T> = {
+  get(): T;
+  set(value: T): void;
+};
+
+type Proxify<T> = {
+  [P in keyof T]: Proxy<T[P]>;
+};
+
+function proxify<T>(o: T): Proxify<T> {
+  const result = {} as Proxify<T>;
+  for (const k in o) {
+    result[k] = {
+      get() {
+        return o[k];
+      },
+      set(value) {
+        o[k] = value;
+      }
+    };
+  }
+  return result;
+}
+
+function unproxify<T>(t: Proxify<T>): T {
+  let result = {} as T;
+  for (const k in t) {
+    result[k] = t[k].get();
+  }
+  return result;
+}
+```
+
+### Conditional Types
+
+A conditional type `T extends U ? X : Y`, when `T` is assignable to `U` the type is `X`, otherwise the type is `Y`.
+
+```ts
+type TypeName<T> = T extends string
+  ? 'string'
+  : T extends number
+  ? 'number'
+  : T extends boolean
+  ? 'boolean'
+  : T extends undefined
+  ? 'undefined'
+  : T extends Function
+  ? 'function'
+  : 'object';
+
+type T0 = TypeName<string>; // 'string'
+type T1 = TypeName<'a'>; // 'string'
+type T2 = TypeName<true>; // 'boolean'
+type T3 = TypeName<() => void>; // 'function'
+type T4 = TypeName<string[]>; // 'object'
+```
+
+`T extends U ? X : Y` is either **resolved** to `X` or `Y`, or **deferred** - where they stick around instead of picking a branch.
+
+```ts
+declare function f<T extends boolean>(x: T): T extends true ? string : number;
+
+// Type is 'string | number'
+const x = f(Math.random() < 0.5);
+```
+
+```ts
+interface Foo {
+  propA: boolean;
+  propB: boolean;
+}
+
+declare function f<T>(x: T): T extends Foo ? string : number;
+
+function foo<U>(x: U) {
+  // `U extends Foo ? string : number` is assignable to `string | number`
+  const b: string | number = a;
+}
+```
+
+#### Distributive conditional types
+
+`T extends U ? X : Y` in which `T` is a naked type parameter are called distributive conditional types. Distributive conditional types are automatically distributed over union types during instantiation. For example, an instantiation of `T extends U ? X : Y` with the type argument `A | B | C` for `T` is resolved as `(A extends U ? X : Y) | (B extends U ? X : Y) | (C extends U ? X : Y)`.
+
+```ts
+type BoxedValue<T> = { value: T };
+type BoxedArray<T> = { array: T[] };
+type Boxed<T> = T extends any[] ? BoxedArray<T[number]> : BoxedValue<T>;
+
+type T20 = Boxed<string>; // BoxedValue<string>;
+type T21 = Boxed<number[]>; // BoxedArray<number>;
+type T22 = Boxed<string | number[]>; // BoxedValue<string> | BoxedArray<number>;
+```
+
+```ts
+type Diff<T, U> = T extends U ? never : T; // Remove types from T that are assignable to U
+type Filter<T, U> = T extends U ? T : never; // Remove types from T that are not assignable to U
+
+type T30 = Diff<'a' | 'b' | 'c' | 'd', 'a' | 'c' | 'f'>; // 'b' | 'd'
+type T31 = Filter<'a' | 'b' | 'c' | 'd', 'a' | 'c' | 'f'>; // 'a' | 'c'
+type T32 = Diff<string | number | (() => void), Function>; // string | number
+type T33 = Filter<string | number | (() => void), Function>; // () => void
+
+type NonNullable<T> = Diff<T, null | undefined>; // Remove null and undefined from T
+
+type T34 = NonNullable<string | number | undefined>; // string | number
+type T35 = NonNullable<string | string[] | null | undefined>; // string | string[]
+```
+
+> Note: `T | never` = `T`, `T & never` = `never`.
+
+```ts
+type FunctionPropertyNames<T> = {
+  [K in keyof T]: T[K] extends Function ? K : never;
+}[keyof T];
+type FunctionProperties<T> = Pick<T, FunctionPropertyNames<T>>;
+
+type NonFunctionPropertyNames<T> = {
+  [K in keyof T]: T[K] extends Function ? never : K;
+}[keyof T];
+type NonFunctionProperties<T> = Pick<T, NonFunctionPropertyNames<T>>;
+```
+
+#### Type inference in conditional types
+
+Within the `extends` clause of a conditional type, it is now possible to have `infer` declarations that introduce a type variable to be inferred. Such inferred type variables may be referenced in the true branch of the conditional type. It is possible to have multiple `infer` locations for the same type variable.
+
+```ts
+type ReturnType<T> = T extends (...args: any[]) => infer R ? R : any;
+```
+
+```ts
+type Unpacked<T> = T extends (infer U)[]
+  ? U
+  : T extends (...args: any[]) => infer U
+  ? U
+  : T extends Promise<infer U>
+  ? U
+  : T;
+
+type T0 = Unpacked<string>; // string
+type T1 = Unpacked<string[]>; // string
+type T2 = Unpacked<() => string>; // string
+type T3 = Unpacked<Promise<string>>; // string
+type T4 = Unpacked<Promise<string>[]>; // Promise<string>
+type T5 = Unpacked<Unpacked<Promise<string>[]>>; // string
+```
+
+```ts
+type Foo<T> = T extends { a: infer U; b: infer U } ? U : never;
+type T11 = Foo<{ a: string; b: number }>; // string | number
+
+type Bar<T> = T extends { a: (x: infer U) => void; b: (x: infer U) => void }
+  ? U
+  : never;
+type T21 = Bar<{ a: (x: string) => void; b: (x: number) => void }>; // string & number
+```
+
+```ts
+// Error, not supported
+type ReturnType<T extends (...args: any[]) => infer R> = R;
+
+type AnyFunction = (...args: any[]) => any;
+type ReturnType<T extends AnyFunction> = T extends (...args: any[]) => infer R
+  ? R
+  : any;
 ```
