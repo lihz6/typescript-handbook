@@ -1,4 +1,4 @@
-# TypeScript Handbook Digest
+# TypeScript Handbook Refresher
 
 ## Basic Types
 
