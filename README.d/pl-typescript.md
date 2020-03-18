@@ -40,6 +40,21 @@ const isDone: boolean = true;
 const isDone = true;
 ```
 
+```ts
+const person: { name: string; age: number } = { name: 'John', age: 21 };
+
+const person = { name: 'John', age: 21 };
+```
+
+```ts
+const person: { readonly name: string; readonly age: number } = {
+  name: 'John',
+  age: 21
+};
+
+const person = { name: 'John', age: 21 } as const;
+```
+
 ### Type Functions
 
 ```ts
