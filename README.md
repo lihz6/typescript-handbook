@@ -1519,3 +1519,46 @@ type ReturnType<T extends AnyFunction> = T extends (...args: any[]) => infer R
   ? R
   : any;
 ```
+
+## Type Inference
+
+### Infer from Initializers
+
+- initializing variables and members
+- setting parameter default values
+- determining function return types
+
+```ts
+let x = 3; // number
+```
+
+### Best Narrowed Type
+
+```ts
+let s = 'a'; // string
+
+const s = 'a'; // 'a'
+
+const flags = [1, 2, 3] as const; // readonly [1, 2, 3]
+```
+
+### Best Common Type
+
+```ts
+let x = [0, 1, null]; // (number | null)[]
+```
+
+```ts
+const zoo = [new Elephant(), new Snake()]; // (Elephant | Snake)[]
+
+const zoo = [new Animal(), new Elephant(), new Snake()]; // Animal[]
+```
+
+### Contextual Typing
+
+```ts
+window.onmousedown = function(mouseEvent) {
+  console.log(mouseEvent.button); // OK
+  console.log(mouseEvent.kangaroo); // Error!
+};
+```
