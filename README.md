@@ -52,6 +52,7 @@ const person: { readonly name: string; readonly age: number } = {
   age: 21
 };
 
+// { readonly name: 'John'; readonly age: 21; }
 const person = { name: 'John', age: 21 } as const;
 ```
 
