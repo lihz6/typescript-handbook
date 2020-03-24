@@ -1563,3 +1563,140 @@ window.onmousedown = function(mouseEvent) {
   console.log(mouseEvent.kangaroo); // Error!
 };
 ```
+
+## Type Compatibility
+
+```ts
+interface Named {
+  name: string;
+}
+
+class Person {
+  name!: string;
+}
+
+// OK, because of structural typing
+const p: Named = new Person();
+```
+
+### Comparing two functions
+
+```ts
+const x = (a: number) => 0;
+const y = (a: number, s: string) => 0;
+
+y = x; // OK
+x = y; // Error
+```
+
+```ts
+const x = (a: number | string) => 0;
+const y = (a: number) => 0;
+
+y = x; // OK
+x = y; // Error
+```
+
+```ts
+const x = () => ({ name: 'Alice' });
+const y = () => ({ name: 'Alice', location: 'Seattle' });
+
+x = y; // OK
+y = x; // Error
+```
+
+#### Functions with overloads
+
+When a function has overloads, each overload in the source type must be matched by a compatible signature on the target type. This ensures that the target function can be called in all the same situations as the source function.
+
+### Allowed Unsound Behaviors
+
+#### Function Parameter Bivariance
+
+When comparing the types of function parameters, assignment succeeds if either the source parameter is assignable to the target parameter, or vice versa.
+
+```ts
+enum EventType {
+  Mouse,
+  Keyboard
+}
+
+interface Event {
+  timestamp: number;
+}
+interface MouseEvent extends Event {
+  x: number;
+  y: number;
+}
+interface KeyEvent extends Event {
+  keyCode: number;
+}
+
+function listenEvent(
+  eventType: EventType,
+  // target:
+  handler: (n: Event) => void
+) {
+  // ...
+}
+
+// Unsound, but useful and common
+listenEvent(
+  EventType.Mouse,
+  // source:
+  (e: MouseEvent) => console.log(e.x + ',' + e.y)
+);
+```
+
+> Note: To raise errors when this happens, turn on the compiler flag `--strictFunctionTypes`.
+
+#### Optional Parameters and Rest Parameters
+
+When comparing functions for compatibility, optional and required parameters are interchangeable.
+
+Extra optional parameters of the source type are not an error, and optional parameters of the target type without corresponding parameters in the source type are not an error.
+
+When a function has a rest parameter, it is treated as if it were an infinite series of optional parameters.
+
+```ts
+function invokeLater(args: any[], callback: (...args: any[]) => void) {
+  /* ... Invoke callback with 'args' ... */
+}
+
+// Unsound - invokeLater "might" provide any number of arguments
+invokeLater([1, 2], (x, y) => console.log(x + ', ' + y));
+```
+
+#### Enums
+
+Enums are compatible with numbers, and numbers are compatible with enums. Enum values from different enum types are considered incompatible.
+
+#### Classes
+
+`static` members and `constructor`s do not affect compatibility. `private` and `protected` members in a class affect their compatibility.
+
+#### Generics
+
+Type parameters only affect the resulting type when consumed as part of the type of a member.
+
+```ts
+interface Empty<T> {}
+declare let x: Empty<number>;
+declare let y: Empty<string>;
+
+x = y; // OK
+```
+
+```ts
+interface NotEmpty<T> {
+  data: T;
+}
+declare let x: NotEmpty<number>;
+declare let y: NotEmpty<string>;
+
+x = y; // Error!
+```
+
+### Subtype and Assignment
+
+In TypeScript, there are two kinds of compatibility: **subtype** and **assignment**. These differ only in that assignment extends subtype compatibility with rules to allow assignment to and from `any`, and to and from `enum` with corresponding numeric values.
