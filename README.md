@@ -5,22 +5,26 @@
 - `undefined`: `undefined`
 - `boolean`: `true` `false`
 - `number`: `0` `0b0` `0o0` `0x0` `0.0`
+- `bigint`: `100n`
 - `string`: `''` `""` <code>\`\${expr}`</code>
-- `symbol`: `Symbol()`
+- `symbol`: `Symbol()` `Symbol.for('key')`
 - `null`: `null`
 - `object`: not `undefined`, `boolean`, `number`, `string`, `symbol` or `null`
+  > NOTE: `typeof null === 'object'`.
 
 * `array`: `ReadonlyArray<T>` `readonly Array<T>` `readonly T[]` `Array<T>` `T[]`
 * `tuple`: `readonly [T1, T2, ...]` `[T1, T2, ...]`
 
 - `any`: `T | any` `unknown`
-- `void`: `undefined` `void | T`
+- `void`: `undefined` `void T`
 - `never`: `throw Error()` `while (true) {}` `...`
 
 ### Type Assertions
 
-- `<Type>value`
+- `value as const`
 - `value as Type`
+- `<const>value`
+- `<Type>value`
 - `value!`
 
 ### Type Variables
@@ -49,7 +53,7 @@ const person = { name: 'John', age: 21 };
 ```ts
 const person: { readonly name: string; readonly age: number } = {
   name: 'John',
-  age: 21
+  age: 21,
 };
 
 // { readonly name: 'John'; readonly age: 21; }
@@ -331,9 +335,9 @@ interface Counter {
 }
 
 function getCounter(): Counter {
-  const counter = (function() {} as unknown) as Counter;
+  const counter = (function () {} as unknown) as Counter;
   counter.interval = 123;
-  counter.reset = function() {};
+  counter.reset = function () {};
   return counter;
 }
 ```
@@ -582,7 +586,7 @@ const deck: Deck = {
 
       return { suit: this.suits[pickedSuit], card: pickedCard % 13 };
     };
-  }
+  },
 };
 
 const cardPicker = deck.createCardPicker();
@@ -650,13 +654,13 @@ enum FileAccess {
   Write = 1 << 2,
   ReadWrite = Read | Write,
   // computed member
-  G = '123'.length
+  G = '123'.length,
 }
 ```
 
 ```ts
 enum Enum {
-  A
+  A,
 }
 Enum[Enum.A]; // "A"
 ```
@@ -664,7 +668,7 @@ Enum[Enum.A]; // "A"
 ```ts
 enum ShapeKind {
   Circle,
-  Square
+  Square,
 }
 
 interface Circle {
@@ -687,7 +691,7 @@ interface Square {
 ```ts
 const enum Reply {
   YES,
-  NO
+  NO,
 }
 // expanded: [0 /* YES */, 1 /* NO */];
 const replies = [Reply.YES, Reply.NO];
@@ -698,7 +702,7 @@ const replies = [Reply.YES, Reply.NO];
 ```ts
 enum KeyOfShape {
   COLOR = 'color',
-  WIDTH = 'width'
+  WIDTH = 'width',
 }
 
 interface Shape {
@@ -763,12 +767,12 @@ function identity<T>(arg: T): T {
   return arg;
 }
 
-const identity: <T>(arg: T) => T = arg => arg;
+const identity: <T>(arg: T) => T = (arg) => arg;
 
 const identityObj = {
   identity<T>(arg: T): T {
     return arg;
-  }
+  },
 };
 
 class IdentityCls {
@@ -1265,10 +1269,7 @@ class ScientificCalculator extends BasicCalculator {
   // ... other operations go here ...
 }
 
-const v = new ScientificCalculator(2)
-  .multiply(5)
-  .sin()
-  .currentValue();
+const v = new ScientificCalculator(2).multiply(5).sin().currentValue();
 ```
 
 ### Index types
@@ -1285,7 +1286,7 @@ function getProperty<T, K extends keyof T>(o: T, propertyName: K): T[K] {
 const taxi = {
   manufacturer: 'Toyota',
   model: 'Camry',
-  year: 2014
+  year: 2014,
 };
 
 const name: string = getProperty(taxi, 'manufacturer');
@@ -1371,7 +1372,7 @@ function proxify<T>(o: T): Proxify<T> {
       },
       set(value) {
         o[k] = value;
-      }
+      },
     };
   }
   return result;
@@ -1558,7 +1559,7 @@ const zoo = [new Animal(), new Elephant(), new Snake()]; // Animal[]
 ### Contextual Typing
 
 ```ts
-window.onmousedown = function(mouseEvent) {
+window.onmousedown = function (mouseEvent) {
   console.log(mouseEvent.button); // OK
   console.log(mouseEvent.kangaroo); // Error!
 };
@@ -1618,7 +1619,7 @@ When comparing the types of function parameters, assignment succeeds if either t
 ```ts
 enum EventType {
   Mouse,
-  Keyboard
+  Keyboard,
 }
 
 interface Event {
