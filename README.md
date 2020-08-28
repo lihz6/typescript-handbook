@@ -9,7 +9,7 @@
 - `string`: `''` `""` <code>\`\${expr}`</code>
 - `symbol`: `Symbol()` `Symbol.for('key')`
 - `null`: `null`
-- `object`: not `undefined`, `boolean`, `number`, `string`, `symbol` or `null`
+- `object`: not `undefined`, `boolean`, `number`, `bigint`, `string`, `symbol` or `null`
   > NOTE: `typeof null === 'object'`.
 
 * `array`: `ReadonlyArray<T>` `readonly Array<T>` `readonly T[]` `Array<T>` `T[]`
