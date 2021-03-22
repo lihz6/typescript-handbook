@@ -1,4 +1,4 @@
-# TypeScript Handbook Refresher
+# TypeScript Handbook
 
 ## Basic Types
 
@@ -10,7 +10,7 @@
 - `symbol`: `Symbol()` `Symbol.for('key')`
 - `null`: `null`
 - `object`: not `undefined`, `boolean`, `number`, `bigint`, `string`, `symbol` or `null`
-  > NOTE: `typeof null === 'object'`.
+  > NOTE: `typeof null === 'object'` and `typeof parseInt === 'function'`.
 
 * `array`: `ReadonlyArray<T>` `readonly Array<T>` `readonly T[]` `Array<T>` `T[]`
 * `tuple`: `readonly [T1, T2, ...]` `[T1, T2, ...]`
@@ -767,7 +767,7 @@ function identity<T>(arg: T): T {
   return arg;
 }
 
-const identity: <T>(arg: T) => T = (arg) => arg;
+const identity: <T>(arg: T) => T = arg => arg;
 
 const identityObj = {
   identity<T>(arg: T): T {
